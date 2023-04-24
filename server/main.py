@@ -1,47 +1,118 @@
 import streamlit as st
 from PIL import Image
-import os
-import imghdr
-from io import BytesIO
-import base64
-import tempfile
-from PdffromImage import do_work
-import PdffromImage as dt
-import docx2txt
-from PIL import ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+import pytesseract
+from PIL import Image
+from PIL import Image
+
+from PIL import Image
+BG = Image.open("myfont/bg.png")
+sizeOfSheet =BG.width
+gap, _  = 0,0
+allowedChars = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM,.-?!() 1234567890'
+def writee(char):
+    global gap, _
+    if char == '\n':
+        pass
+    else:
+        char.lower()
+        cases = Image.open("myfont/%s.png"%char)
+        BG.paste(cases, (gap, _))
+        size = cases.width
+        gap += size
+        del cases
+
+def letterwrite(word):
+    global gap, _
+    if gap > sizeOfSheet - 95*(len(word)):
+        gap = 0
+        _ += 200
+    for letter in word:        
+        if letter in allowedChars:
+            if letter.islower():
+                pass
+            elif letter.isupper():
+                letter = letter.lower()
+                letter += 'upper'            
+            elif letter == '.':
+                letter = "fullstop"
+            elif letter == '!':
+                letter = 'exclamation'
+            elif letter == '?':
+                letter = 'question'
+            elif letter == ',':
+                letter = 'comma'
+            elif letter == '(':
+                letter = 'braketop'
+            elif letter == ')':
+                letter = 'braketcl'
+            elif letter == '-':
+                letter = 'hiphen'
+            writee(letter)
+def worddd(Input):
+    wordlist=Input.split(' ')
+    for i in wordlist:
+        letterwrite(i)
+        writee('space')
+if __name__ == '__main__':
+    try:
+        with open('sample.txt', 'r') as file:
+            data = file.read().replace('\n', '')
+        l=len(data)
+        nn=len(data)//600
+        chunks, chunk_size = len(data), len(data)//(nn+1)
+        p=[ data[i:i+chunk_size] for i in range(0, chunks, chunk_size) ]
+        
+        for i in range(0,len(p)):
+            worddd(p[i])
+            writee('\n')
+            BG.save('%doutt.png'%i)
+            BG1= Image.open("myfont/bg.png")
+            BG=BG1
+            gap = 0
+            _ =0
+    except ValueError as E:
+        print("{}\nTry again".format(E))
+
+from fpdf import FPDF
+from PIL import Image
+
+imagelist=[]
+for i in range(0,len(p)):
+    imagelist.append('%doutt.png'%i)
+
+#Converting images to pdf
+#Source:https://datatofish.com/images-to-pdf-python/
 
 
-def get_binary_file_downloader_html(bin_file, file_label='File'):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    bin_str = base64.b64encode(data).decode()
-    return f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}"><input type="button" value="Download"></a>'
+def pdf_creation(PNG_FILE,flag=False):
+    rgba = Image.open(PNG_FILE)
+    rgb = Image.new('RGB', rgba.size, (255, 255, 255))  # white background
+    rgb.paste(rgba, mask=rgba.split()[3])               # paste using alpha channel as mask
+    rgb.save('final_output.pdf', append=flag)  #Now save multiple images in same pdf file
+
+#First create a pdf file if not created
+pdf_creation(imagelist.pop(0))
+
+#Now I am opening each images and converting them to pdf 
+#Appending them to pdfs
+for PNG_FILE in imagelist:
+    pdf_creation(PNG_FILE,flag=True)
 
 
-st.markdown("<h1 style='text-align: center; color: black; ''> Digital to Handwritten text  <br><br> No more Handwritten Assignments   \U0000270D </h1>",
-            unsafe_allow_html=True)
+def pdfToText(path):
+    pdfreader = PyPDF2.PdfFileReader(path)
+    no_of_pages = pdfreader.numPages
+    with open('final_txt.txt', 'w') as f:
+        for i in range(0, no_of_pages):
+            pagObj = pdfreader.getPage(i)
+            f.write(pagObj.extractText())
+    with open('final_txt.txt', 'r') as f:
+        text = f.read()
+    if os.path.exists("final_txt.txt"):
+        pass
+        return text
+    
 
-st.markdown("<h3 style='text-align: right; color: black;'><b>by Divy Mohan Rai</b></h3>",
-            unsafe_allow_html=True)
-
-main_bg = "./images/t2.jpg"
-
-main_bg_ext = "jpg"
-
-st.markdown(
-    f"""
-    <style>
-    .reportview-container {{
-        background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()})
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# creating a side bar for picking the style of image
 style_name = st.sidebar.selectbox(
     'Select HandWriting',
     ("Style-1", "Style-2", "Style-3", "Style-4", "Style-5")
@@ -65,7 +136,29 @@ if not uploaded_file:
 
 if uploaded_file is not None:
 
-    st.image(path_style, caption='Choosen Handwriting', use_column_width=True)
+    if file is not None:
+        try:
+            text_data = pdfToText(file)
+            st.write("text generated")
+            with open('final_txt.txt', 'r') as file:
+                data = file.read().replace('\n', '')
+
+            st.write(data)
+            l=len(data)
+            nn=len(data)//600
+            chunks, chunk_size = len(data), len(data)//(nn+1)
+            p= [data[i:i+chunk_size] for i in range(0, chunks, chunk_size)]
+            print("value of p is ",p)
+            for i in range(0,len(p)):
+                worddd(p[i])
+                writee('\n')
+                BG.save('%doutt.png'%i)
+                BG1= Image.open("myfont/bg.png")
+                BG=BG1
+                gap = 0
+                _ =0
+        except ValueError as E:
+            print("{}\nTry again".format(E))
 
     ###########################
     file_details = {"Filename": uploaded_file.name,
